@@ -1,6 +1,7 @@
 module Main (main) where
 
-import RokoLisp (someFunc)
+import Relude
+import RokoLisp (parse)
 
 main :: IO ()
-main = someFunc
+main = print (parse "(λ x x)")

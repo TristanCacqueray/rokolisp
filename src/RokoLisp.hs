@@ -5,9 +5,11 @@
 --
 -- See README for more info
 module RokoLisp
-  ( someFunc,
+  ( Term (..),
+    parse,
+    format,
   )
 where
 
-someFunc :: IO ()
-someFunc = putStrLn ("someFunc" :: String)
+import RokoLisp.Eval
+import RokoLisp.Syntax
