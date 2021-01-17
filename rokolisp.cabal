@@ -64,6 +64,7 @@ common common-options
 library
   import:              common-options
   build-depends:       containers
+                     , base
                      , parsec
                      , relude
                      , text
@@ -72,6 +73,7 @@ library
   exposed-modules:     RokoLisp,
                        RokoLisp.Syntax
                        RokoLisp.Eval
+                       RokoLisp.Runtime
 
 
 executable rokolisp

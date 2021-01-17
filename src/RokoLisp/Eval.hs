@@ -1,13 +1,18 @@
 -- | The language evaluator
 module RokoLisp.Eval
   ( Term (..),
+    Value (..),
+    Literal (..),
     alphaConvert,
     betaReduce,
+    eval,
   )
 where
 
+import Data.Map (lookup)
 import qualified Data.Text as Text
 import Relude
+import qualified Text.Show
 
 type Name = Text
 
@@ -57,3 +62,36 @@ betaReduce = \case
     Lam name body -> betaReduce (alphaConvert name t2 body)
     term -> App term t2
   term -> term
+
+-- | The Value data type
+data Value
+  = VLam Name Term
+  | VFun (Value -> Value)
+  | VLit Literal
+  deriving stock (Show)
+
+data Literal
+  = LitInt Integer
+  deriving stock (Eq, Show)
+
+instance Show (Value -> Value) where
+  show = const "runtime-func"
+
+instance Eq (Value -> Value) where
+  _ == _ = True
+
+-- | Evaluate term to value
+eval :: Map Name Value -> Term -> Either Text Value
+eval env = \case
+  Var x -> case lookup x env of
+    Just v -> pure v
+    Nothing -> VLit <$> maybeToRight "invalid literal" (decodeLit x)
+  Lam name expr -> pure $ VLam name expr
+  App t1 t2 ->
+    case eval env t1 of
+      Right (VLam name body) -> eval env (alphaConvert name t2 body)
+      Right (VFun f) -> f <$> eval env t2
+      _ -> Left ("not a func: " <> show t1)
+  where
+    decodeLit :: Name -> Maybe Literal
+    decodeLit n = LitInt <$> readMaybe (toString n)

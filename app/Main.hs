@@ -8,19 +8,30 @@ import Development.GitRev (gitDirty, gitHash)
 import Options.Generic
 import qualified Paths_rokolisp
 import Relude
-import RokoLisp (betaReduce, parse)
+import RokoLisp
 import System.Console.Repline
 
-eval :: Text -> IO ()
-eval input = print (betaReduce <$> parse input)
+replEval :: Text -> IO ()
+replEval input = print (parse input >>= eval functions . betaReduce)
+
+replParse :: Text -> IO ()
+replParse input = print (parse input)
+
+replReduce :: Text -> IO ()
+replReduce input = print (betaReduce <$> parse input)
 
 -- REPL
 runREPL :: IO ()
 runREPL = evalReplOpts (ReplOpts {..})
   where
     banner = const $ pure ">>> "
-    command = liftIO . eval . toText
-    options = [("quit", const (seeYou >> abort)), ("help", const help)]
+    command = liftIO . replEval . toText
+    options =
+      [ ("parse", liftIO . replParse . toText),
+        ("reduce", liftIO . replReduce . toText),
+        ("quit", const (seeYou >> abort)),
+        ("help", const help)
+      ]
     prefix = Just ':'
     multilineCommand = Just "paste"
     tabComplete = Word0 (const $ pure [])
@@ -31,6 +42,10 @@ runREPL = evalReplOpts (ReplOpts {..})
       putTextLn "Type any expression to normalize it or use one of the following commands:"
       putTextLn ":help"
       putTextLn "    Print help text and describe options"
+      putTextLn ":parse term"
+      putTextLn "    Print the desugared form"
+      putTextLn ":reduce term"
+      putTextLn "    Print the reduced form"
       putTextLn ":quit"
       putTextLn "    Exit the REPL"
 
@@ -50,7 +65,7 @@ main = do
   if
       | version args -> putText versionText
       | repl args -> runREPL
-      | otherwise -> maybe getContents readFileText (file args) >>= eval
+      | otherwise -> maybe getContents readFileText (file args) >>= replEval
   where
     versionText = packageVersion <> " " <> commit
     packageVersion = toText . showVersion $ Paths_rokolisp.version
