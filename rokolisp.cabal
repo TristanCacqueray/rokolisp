@@ -78,7 +78,13 @@ executable rokolisp
   import:              common-options
   hs-source-dirs:      app
   main-is:             Main.hs
+  other-modules:       Paths_rokolisp
   build-depends:       rokolisp
+                     , base
+                     , gitrev
+                     , optparse-generic
+                     , repline
+                     , text
   ghc-options:         -threaded
                        -rtsopts
                        -with-rtsopts=-N
