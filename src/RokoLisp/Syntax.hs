@@ -33,10 +33,7 @@ data Syntax
 -- >>> parse "(a (b c) d)"
 -- Right (App (App (Var "a") (App (Var "b") (Var "c"))) (Var "d"))
 parse :: Text -> Either Text Term
-parse s = case Parsec.runParser (desugar <$> syntaxParser <* Parsec.eof) () "<input>" s of
-  Left err -> Left (show err)
-  Right (Left err) -> Left (show err)
-  Right (Right terms) -> Right terms
+parse s = runSyntaxParser s >>= desugar
 
 format :: Term -> Text
 format = \case
@@ -44,18 +41,39 @@ format = \case
   Lam name body -> "(λ " <> name <> " " <> format body <> ")"
   App f x -> "(" <> format f <> " " <> format x <> ")"
 
+-- | Remove syntax desugar
+--
+-- # Lambda curry
+-- >>> parse "(λ x y x)"
+-- Right (Lam "x" (Lam "y" (Var "x")))
+--
+-- # Application curry
+-- >>> parse "(add x y)"
+-- Right (App (App (Var "add") (Var "x")) (Var "y"))
 desugar :: Syntax -> Either Text Term
 desugar = \case
   Atom x -> pure $ Var x
   List [x] -> desugar x
-  List [Atom "λ", Atom name, body] -> Lam name <$> desugar body
+  List (Atom "λ" : xs) -> desugar_lambda xs
+  List (Atom "let" : xs) -> desugar_let xs
   List (f : x : xs) -> desugar_app (App <$> desugar f <*> desugar x) xs
   List [] -> Left "empty list"
   where
+    desugar_lambda [x] = desugar x
+    desugar_lambda (Atom x : xs) = Lam x <$> desugar_lambda xs
+    desugar_lambda xs = Left ("Invalid lambda definition: " <> show xs)
+    desugar_let :: [Syntax] -> Either Text Term
+    desugar_let [Atom name, value, body] = App <$> (Lam name <$> desugar body) <*> desugar value
+    desugar_let xs = Left ("Invalid let binding: " <> show xs)
     desugar_app :: Either Text Term -> [Syntax] -> Either Text Term
     desugar_app acc = \case
       [] -> acc
       (x : xs) -> desugar_app (App <$> acc <*> desugar x) xs
+
+runSyntaxParser :: Text -> Either Text Syntax
+runSyntaxParser s = case Parsec.runParser (syntaxParser <* Parsec.eof) () "<input>" s of
+  Left err -> Left (show err)
+  Right syntax -> Right syntax
 
 syntaxParser :: Parser Syntax
 syntaxParser = (Atom <$> atomParser) <|> (List <$> listParser)
