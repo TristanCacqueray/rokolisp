@@ -19,10 +19,14 @@ instance Arbitrary ATerm where
 
 prop_parser :: ATerm -> Bool
 prop_parser (ATerm t) = t == (parse' . format) t
-  where
-    parse' s = case parse s of
-      Left err -> error err
-      Right x -> x
+
+parse' :: Text -> Term
+parse' s = case parse s of
+  Left err -> error err
+  Right x -> x
+
+betaReduce' :: Text -> Term
+betaReduce' = betaReduce . parse'
 
 docspec :: IO ()
 docspec = doctest (opts <> ["-isrc", "src/"])
@@ -62,3 +66,5 @@ main :: IO ()
 main = hspec $ do
   describe "Doctest" $ it "pass" docspec
   describe "Syntax Properties" $ it "prop_parser" $ property prop_parser
+  describe "Eval" $ do
+    it "Y" (betaReduce' "((λ g ((λ x (g (x x))) (λ x (g (x x))))) (λ id (λ x x)) 42)" `shouldBe` parse' "42")

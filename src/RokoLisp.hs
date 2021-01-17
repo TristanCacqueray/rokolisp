@@ -8,6 +8,8 @@ module RokoLisp
   ( Term (..),
     parse,
     format,
+    alphaConvert,
+    betaReduce,
   )
 where
 
