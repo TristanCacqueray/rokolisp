@@ -12,7 +12,7 @@ import RokoLisp
 import System.Console.Repline
 
 replEval :: Text -> IO ()
-replEval input = print (parse input >>= eval functions . betaReduce)
+replEval input = doEval input >>= print
 
 replParse :: Text -> IO ()
 replParse input = print (parse input)

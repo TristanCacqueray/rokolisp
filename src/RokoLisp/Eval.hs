@@ -68,7 +68,7 @@ data Value
   = VLam Name Term
   | VFun (Value -> Value)
   | VLit Literal
-  deriving stock (Show)
+  deriving stock (Eq, Show)
 
 data Literal
   = LitInt Integer

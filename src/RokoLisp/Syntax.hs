@@ -1,5 +1,5 @@
 -- | The language syntax
-module RokoLisp.Syntax (parse, format) where
+module RokoLisp.Syntax (parse, format, resolve) where
 
 import qualified Data.Text as Text
 import Relude hiding ((<|>))
@@ -90,3 +90,19 @@ syntaxParser = comments *> ((Atom <$> atomParser) <|> (List <$> listParser)) <* 
         <$> (spaces *> Parsec.many1 (Parsec.satisfy (not . flip elem ("()\n " :: String))) <* spaces)
     listParser =
       (spaces *> char '(') *> syntaxParser `Parsec.sepBy` spaces <* (spaces *> char ')' <* spaces)
+
+-- | Resolve imports
+resolve :: MonadIO m => Term -> m Term
+resolve = \case
+  Lam name body -> Lam name <$> resolve body
+  App f arg -> App <$> resolve f <*> resolve arg
+  Var x -> importVar x
+  where
+    importVar :: MonadIO m => Text -> m Term
+    importVar x
+      | Text.head x `elem` ("./" :: String) = do
+        terms' <- parse <$> readFileText (toString x)
+        case terms' of
+          Right term -> resolve term
+          Left err -> error ("Import " <> x <> " failed: " <> err)
+      | otherwise = pure (Var x)

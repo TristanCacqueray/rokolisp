@@ -2,9 +2,18 @@
 
 A programing language designed for embedded use in applications.
 
-You can think of RokoLisp as: lambda calculus + literal + syntax sugar + runtime.
+You can think of RokoLisp as: lambda calculus + import + literal + syntax sugar + runtime.
 
 The goal of this project is to explore pure language design that can be reloaded in realtime for instant feedback.
+
+## Usage
+
+```bash
+$ echo "(./test/code/fact.rl 4)" | cabal run rokolisp
+24
+```
+
+Example program: [fact.rl](./test/code/fact.rl).
 
 ## Terms
 
@@ -26,6 +35,7 @@ The syntax is desugared to term:
 - Application: `(f x)` -> `(App (Var "f") (Var "x"))`
 - Application curry: `(f x y)` -> `(App (App (Var "f") (Var "x")) (Var "y"))`
 - Let binding: `(let name value body)` -> `(App (Lam "name" body) value)`
+- Imports: `./path` -> `path content`
 
 Comments starting with `;` are ignored.
 

@@ -3,7 +3,7 @@ module Main (main) where
 import qualified Data.Text as Text
 import Gauge.Main
 import Relude
-import RokoLisp (Term (..), format, parse)
+import RokoLisp
 import System.Random
 
 sampleTerm :: Int -> Term
@@ -25,6 +25,17 @@ parseFormat :: Text -> Either Text Text
 parseFormat s = format <$> parse s
 
 main :: IO ()
-main = defaultMain [bench ("formatParse (" <> show (Text.length term) <> " byte)") (whnf parseFormat term)]
+main =
+  defaultMain
+    [ bench ("formatParse (" <> show (Text.length term) <> " byte)") (whnf parseFormat term),
+      bench "fact 3" (whnfIO (evalFact 6 "(./test/code/fact.rl 3)"))
+    ]
   where
+    evalFact :: Integer -> Text -> IO ()
+    evalFact expected t = do
+      value <- doEval t
+      case value of
+        Right (VLit (LitInt x)) | x == expected -> pure ()
+        err -> error ("Eval failed: " <> show err)
+
     term = format . sampleTerm $ 24

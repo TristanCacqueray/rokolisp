@@ -14,9 +14,17 @@ module RokoLisp
     betaReduce,
     eval,
     functions,
+    doEval,
   )
 where
 
+import Relude
 import RokoLisp.Eval
 import RokoLisp.Runtime
 import RokoLisp.Syntax
+
+-- | Full eval function that resolves imports
+doEval :: MonadIO m => Text -> m (Either Text Value)
+doEval input = case betaReduce <$> parse input of
+  Right term -> eval functions <$> resolve term
+  Left err -> pure $ Left err
