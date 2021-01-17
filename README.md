@@ -11,7 +11,7 @@ The goal of this project is to explore pure language design that can be reloaded
 A RokoLisp term can be one of these three things:
 
 - A variable: `x`
-- An abstraction: `λx.x`
+- An abstraction: `(λx x)`
 - An application: `(f x)`
 
 The term data type is defined as `data Term = Var Name | Lam Name Term | App Term Term`
@@ -21,11 +21,13 @@ The term data type is defined as `data Term = Var Name | Lam Name Term | App Ter
 The core syntax is defined as `data Syntax = Atom Name | List [Syntax]` using s-expressions.
 The syntax is desugared to term:
 
-- Abstraction: `(λ x x)` -> `(Lam "x" (Var "x"))`
-- Abstraction curry: `(λ x y x)` -> `(Lam "x" (Lam "y" (Var "x")))`
+- Abstraction: `(λx x)` -> `(Lam "x" (Var "x"))`
+- Abstraction curry: `(λx y x)` -> `(Lam "x" (Lam "y" (Var "x")))`
 - Application: `(f x)` -> `(App (Var "f") (Var "x"))`
 - Application curry: `(f x y)` -> `(App (App (Var "f") (Var "x")) (Var "y"))`
 - Let binding: `(let name value body)` -> `(App (Lam "name" body) value)`
+
+Comments starting with `;` are ignored.
 
 ## Runtime
 

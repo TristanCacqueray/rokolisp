@@ -1,6 +1,7 @@
 -- | The language syntax
 module RokoLisp.Syntax (parse, format) where
 
+import qualified Data.Text as Text
 import Relude hiding ((<|>))
 import RokoLisp.Eval (Term (..))
 import Text.Parsec
@@ -54,6 +55,8 @@ desugar :: Syntax -> Either Text Term
 desugar = \case
   Atom x -> pure $ Var x
   List [x] -> desugar x
+  List (Atom x : xs)
+    | Text.head x == 'λ' && Text.tail x /= "" -> desugar_lambda (Atom (Text.tail x) : xs)
   List (Atom "λ" : xs) -> desugar_lambda xs
   List (Atom "let" : xs) -> desugar_let xs
   List (f : x : xs) -> desugar_app (App <$> desugar f <*> desugar x) xs
@@ -76,8 +79,12 @@ runSyntaxParser s = case Parsec.runParser (syntaxParser <* Parsec.eof) () "<inpu
   Right syntax -> Right syntax
 
 syntaxParser :: Parser Syntax
-syntaxParser = (Atom <$> atomParser) <|> (List <$> listParser)
+syntaxParser = comments *> ((Atom <$> atomParser) <|> (List <$> listParser)) <* comments
   where
+    comments =
+      Parsec.optional
+        ( char ';' >> Parsec.many1 (Parsec.satisfy ('\n' /=)) <* spaces
+        )
     atomParser =
       toText
         <$> (spaces *> Parsec.many1 (Parsec.satisfy (not . flip elem ("()\n " :: String))) <* spaces)
