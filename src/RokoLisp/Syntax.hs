@@ -66,7 +66,9 @@ desugar = \case
     desugar_lambda (Atom x : xs) = Lam x <$> desugar_lambda xs
     desugar_lambda xs = Left ("Invalid lambda definition: " <> show xs)
     desugar_let :: [Syntax] -> Either Text Term
+    desugar_let [Atom name, value, Atom "in", body] = desugar_let [Atom name, value, body]
     desugar_let [Atom name, value, body] = App <$> (Lam name <$> desugar body) <*> desugar value
+    desugar_let (Atom name : value : xs) = App <$> (Lam name <$> desugar_let xs) <*> desugar value
     desugar_let xs = Left ("Invalid let binding: " <> show xs)
     desugar_app :: Either Text Term -> [Syntax] -> Either Text Term
     desugar_app acc = \case

@@ -28,7 +28,7 @@ main :: IO ()
 main =
   defaultMain
     [ bench ("formatParse (" <> show (Text.length term) <> " byte)") (whnf parseFormat term),
-      bench "fact 7" (whnfIO (evalFact 5040 "(./test/code/fact.rl 7)"))
+      bench "fact 7" (whnfIO (evalFact 5040 "(./test/code/fact.rkl 7)"))
     ]
   where
     evalFact :: Integer -> Text -> IO ()

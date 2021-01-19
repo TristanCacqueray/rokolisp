@@ -1,0 +1,32 @@
+(let
+  ;; Natural
+  ZERO  (λf n n)
+  ONE   (λf n (f n))
+
+  ;; Bool
+  TRUE  (λx y x)
+  FALSE (λx y y)
+  IS_ZERO (λn (n (λx FALSE) TRUE))
+
+  ;; Pair
+  CONS (λa b s (s a b))
+  CAR  (λp (p TRUE))
+  CDR  (λp (p FALSE))
+
+  ;; Natural algebra
+  INCR (λn f s (f (n f s)))
+  MUL  (λm n f (m (n f)))
+
+  ;; Gadget for decr
+  T    (λp (CONS (INCR (CAR p)) (CAR p)))
+  DECR (λn (CDR (n T (CONS ZERO ZERO))))
+
+  ;; Factorial definition
+  R (λf x (IS_ZERO x ONE (MUL x (f (DECR x)))))
+
+  ;; Y combinator
+  Y (λg ((λx (g (x x))) (λx (g (x x)))))
+in
+  ;; FACT :: Natural -> Natural
+  (λx (church_numeral_decode (Y R (church_numeral_encode x))))
+)
