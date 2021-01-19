@@ -28,14 +28,14 @@ main :: IO ()
 main =
   defaultMain
     [ bench ("formatParse (" <> show (Text.length term) <> " byte)") (whnf parseFormat term),
-      bench "fact 3" (whnfIO (evalFact 6 "(./test/code/fact.rl 3)"))
+      bench "fact 7" (whnfIO (evalFact 5040 "(./test/code/fact.rl 7)"))
     ]
   where
     evalFact :: Integer -> Text -> IO ()
     evalFact expected t = do
       value <- doEval t
       case value of
-        Right (VLit (LitInt x)) | x == expected -> pure ()
+        VLit (LitInt x) | x == expected -> pure ()
         err -> error ("Eval failed: " <> show err)
 
     term = format . sampleTerm $ 24

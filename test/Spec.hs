@@ -25,20 +25,10 @@ parse' s = case parse s of
   Left err -> error err
   Right x -> x
 
-betaReduce' :: Text -> Term
-betaReduce' = betaReduce . parse'
-
-doEval' :: MonadIO m => Text -> m Value
-doEval' s = do
-  v <- doEval s
-  case v of
-    Left err -> error err
-    Right x -> pure x
-
 evalEquals :: Text -> Text -> IO ()
 evalEquals x y = do
-  v1 <- doEval' x
-  v2 <- doEval' y
+  v1 <- doEval x
+  v2 <- doEval y
   v1 `shouldBe` v2
 
 docspec :: IO ()
@@ -80,5 +70,5 @@ main = hspec $ do
   describe "Doctest" $ it "pass" docspec
   describe "Syntax Properties" $ it "prop_parser" $ property prop_parser
   describe "Eval" $ do
-    it "Y" (betaReduce' "((λ g ((λ x (g (x x))) (λ x (g (x x))))) (λ id (λ x x)) 42)" `shouldBe` parse' "42")
+    it "Y" ("((λ g ((λ x (g (x x))) (λ x (g (x x))))) (λ id (λ x x)) 42)" `evalEquals` "42")
     it "Fact" ("(./test/code/fact.rl 3)" `evalEquals` "6")

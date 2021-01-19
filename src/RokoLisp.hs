@@ -10,8 +10,6 @@ module RokoLisp
     Literal (..),
     parse,
     format,
-    alphaConvert,
-    betaReduce,
     eval,
     functions,
     doEval,
@@ -24,7 +22,9 @@ import RokoLisp.Runtime
 import RokoLisp.Syntax
 
 -- | Full eval function that resolves imports
-doEval :: MonadIO m => Text -> m (Either Text Value)
-doEval input = case betaReduce <$> parse input of
-  Right term -> eval functions <$> resolve term
-  Left err -> pure $ Left err
+doEval :: MonadIO m => Text -> m Value
+doEval input = case parse input of
+  Right term -> do
+    func <- functions
+    resolve term >>= eval func
+  Left err -> error (show err)

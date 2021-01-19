@@ -44,9 +44,9 @@ Comments starting with `;` are ignored.
 A RokoLisp term can be evaluated to a value:
 
 - Free variables may become a literal
-  - Integer: `"42"` -> `LitInt 42`
+  - `42` -> Integer
 
 The runtime implements the following built-ins:
 
-- church_numeral_encode: `2` -> `(λf (λs (f (f s))))`
-- church_numeral_decode: `(λ f x (f (f x)))` -> `LitInt 2`
+- `(church_numeral_encode 2)` -> `(λf (λs (f (f s))))`
+- `(church_numeral_decode (λ f x (f (f x))))` -> `2`

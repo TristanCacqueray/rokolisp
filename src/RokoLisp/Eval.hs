@@ -1,16 +1,21 @@
 -- | The language evaluator
 module RokoLisp.Eval
-  ( Term (..),
+  ( -- * Eval data types
+    Term (..),
     Value (..),
     Literal (..),
-    alphaConvert,
-    betaReduce,
+
+    -- * Runtimes
+    Name,
+    ThunkRef,
+
+    -- * Evaluation function
     eval,
   )
 where
 
 import Data.Map (lookup)
-import qualified Data.Text as Text
+import qualified Data.Map as Map
 import Relude
 import qualified Text.Show
 
@@ -23,75 +28,65 @@ data Term
   | App Term Term
   deriving stock (Show, Eq)
 
--- | Convert conflicting variable name (based on code by Renzo Carbonara)
---
--- >>> alphaConvert "f" (Var "x") (Lam "x" (App (Var "f") (Var "x")))
--- Lam "xx" (App (Var "x") (Var "xx"))
-alphaConvert :: Name -> Term -> Term -> Term
-alphaConvert name term = \case
-  Var varName -> if name == varName then term else Var varName
-  App t1 t2 -> App (convert t1) (convert t2)
-  Lam varName body
-    | -- varName shadows name
-      name == varName ->
-      Lam varName body
-    | -- varName conflicts
-      isFree varName term ->
-      let newName = freshName "x" term
-          newBody = alphaConvert varName (Var newName) body
-       in Lam newName (convert newBody)
-    | otherwise ->
-      Lam varName (convert body)
-  where
-    convert = alphaConvert name term
-    isFree n e = n `elem` freeVars e
-    freeVars = \case
-      Var n -> [n]
-      App f x -> freeVars f <> freeVars x
-      Lam n b -> filter (/= n) (freeVars b)
-    freshName s e
-      | isFree s e = freshName (Text.cons 'x' s) e
-      | otherwise = s
-
--- | Substitute lambda application
--- >>> betaReduce (App (Lam "x" (Var "x")) (Var "y"))
--- Var "y"
-betaReduce :: Term -> Term
-betaReduce = \case
-  App t1 t2 -> case betaReduce t1 of
-    Lam name body -> betaReduce (alphaConvert name t2 body)
-    term -> App term t2
-  term -> term
-
 -- | The Value data type
 data Value
   = VLam Name Term
-  | VFun (Value -> Value)
   | VLit Literal
-  deriving stock (Eq, Show)
+  | VFun (Value -> IO Value)
+  | VClosure (Thunk -> IO Value)
 
 data Literal
   = LitInt Integer
-  deriving stock (Eq, Show)
+  deriving stock (Eq)
 
-instance Show (Value -> Value) where
-  show = const "runtime-func"
+instance Show Value where
+  show (VLit (LitInt x)) = show x
+  show (VLam name term) = "VLam " <> show (Lam name term)
+  show (VFun _) = "<runtime-func>"
+  show (VClosure _) = "<closure>"
 
-instance Eq (Value -> Value) where
-  _ == _ = True
+instance Eq Value where
+  VLam n t == VLam n' t' = n == n' && t == t'
+  VLit x == VLit y = x == y
+  _ == _ = False
+
+-- | call-by-value thunk (based on Write You A Haskell code by Stephen Dielh)
+type Thunk = () -> IO Value
+
+type ThunkRef = IORef Thunk
+
+type Env = Map Name ThunkRef
+
+forceThunk :: MonadIO m => ThunkRef -> m Value
+forceThunk ref = do
+  th <- readIORef ref
+  v <- liftIO $ th ()
+  writeIORef ref (\() -> return v)
+  return v
+
+mkThunk :: MonadIO m => Env -> Name -> Term -> (Thunk -> m Value)
+mkThunk env x body th = do
+  thRef <- newIORef th
+  eval (Map.insert x thRef env) body
 
 -- | Evaluate term to value
-eval :: Map Name Value -> Term -> Either Text Value
+eval :: MonadIO m => Env -> Term -> m Value
 eval env = \case
   Var x -> case lookup x env of
-    Just v -> pure v
-    Nothing -> VLit <$> maybeToRight "invalid literal" (decodeLit x)
-  Lam name expr -> pure $ VLam name expr
-  App t1 t2 ->
-    case eval env t1 of
-      Right (VLam name body) -> eval env (alphaConvert name t2 body)
-      Right (VFun f) -> f <$> eval env t2
-      _ -> Left ("not a func: " <> show t1)
+    Just th -> forceThunk th
+    Nothing -> case decodeLit x of
+      Just v -> pure $ VLit v
+      Nothing -> error ("unknown var " <> show x)
+  Lam name term -> pure $ VClosure (mkThunk env name term)
+  App t1 t2 -> do
+    fun <- eval env t1
+    case fun of
+      VClosure c -> liftIO $ c (const $ eval env t2)
+      VLam n t -> mkThunk env n t (const $ eval env t2)
+      VFun f -> do
+        arg <- eval env t2
+        liftIO $ f arg
+      x -> error ("app term is not a closure " <> show t1 <> " (" <> show x <> ")")
   where
     decodeLit :: Name -> Maybe Literal
     decodeLit n = LitInt <$> readMaybe (toString n)

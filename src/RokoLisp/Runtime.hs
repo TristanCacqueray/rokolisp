@@ -4,40 +4,39 @@ module RokoLisp.Runtime (functions) where
 import Relude
 import RokoLisp.Eval
 
-fn2 :: (Value -> Value -> Value) -> Value -> Value
-fn2 f = VFun . f
-
-add :: Value -> Value -> Value
+add :: Value -> Value -> IO Value
 add x y = case (x, y) of
-  (VLit (LitInt x'), VLit (LitInt y')) -> VLit (LitInt (x' + y'))
+  (VLit (LitInt x'), VLit (LitInt y')) -> pure $ VLit (LitInt (x' + y'))
   _ -> error "Invalid add arguments"
 
-inc :: Value -> Value
+inc :: Value -> IO Value
 inc = add (VLit (LitInt 1))
 
-churchNumeralDecode :: Value -> Value
+churchNumeralDecode :: Value -> IO Value
 churchNumeralDecode x = case x of
-  VLam f body -> case eval functions body of
-    Right (VLam arg body') -> case eval functions (App (App (Lam f (Lam arg body')) (Var "+1")) (Var "0")) of
-      Right v -> v
-      Left e -> error ("Church numeral decode failed: " <> e)
-    _ -> error ("Invalid church numeral: " <> show x)
-  _ -> error ("Invalid church numeral: " <> show x)
+  VClosure c -> do
+    y <- c (const $ pure (VFun inc))
+    case y of
+      VClosure f -> f (const $ pure (VLit (LitInt 0)))
+      _ -> error ("Invalid church numeral: second term is not a lambda: " <> show y)
+  _ -> error ("Invalid church numeral: first term is not a lambda: " <> show x)
 
-churchNumeralEncode :: Value -> Value
+churchNumeralEncode :: Value -> IO Value
 churchNumeralEncode = \case
-  VLit (LitInt x) | x >= 0 -> VLam "f" (Lam "s" (go x))
+  VLit (LitInt x) | x >= 0 -> pure $ VLam "f" (Lam "s" (go x))
   x -> error ("Church numeral encode failed: " <> show x <> " is not a literal natural")
   where
     go 0 = Var "s"
     go n = App (Var "f") (go (n - 1))
 
-functions :: Map Text Value
-functions =
-  VFun
-    <$> fromList
-      [ ("+1", inc),
-        ("+", fn2 add),
-        ("church_numeral_decode", churchNumeralDecode),
-        ("church_numeral_encode", churchNumeralEncode)
-      ]
+functions :: MonadIO m => m (Map Name ThunkRef)
+functions = sequence (mkRuntimeThunk <$> runtimeMap)
+  where
+    runtimeMap :: Map Name (Value -> IO Value)
+    runtimeMap =
+      fromList
+        [ ("church_numeral_decode", churchNumeralDecode),
+          ("church_numeral_encode", churchNumeralEncode)
+        ]
+    mkRuntimeThunk :: MonadIO m => (Value -> IO Value) -> m ThunkRef
+    mkRuntimeThunk v = newIORef (const $ pure $ VFun v)

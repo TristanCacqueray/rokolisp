@@ -17,9 +17,6 @@ replEval input = doEval input >>= print
 replParse :: Text -> IO ()
 replParse input = print (parse input)
 
-replReduce :: Text -> IO ()
-replReduce input = print (betaReduce <$> parse input)
-
 -- REPL
 runREPL :: IO ()
 runREPL = evalReplOpts (ReplOpts {..})
@@ -28,7 +25,6 @@ runREPL = evalReplOpts (ReplOpts {..})
     command = liftIO . replEval . toText
     options =
       [ ("parse", liftIO . replParse . toText),
-        ("reduce", liftIO . replReduce . toText),
         ("quit", const (seeYou >> abort)),
         ("help", const help)
       ]
@@ -44,8 +40,6 @@ runREPL = evalReplOpts (ReplOpts {..})
       putTextLn "    Print help text and describe options"
       putTextLn ":parse term"
       putTextLn "    Print the desugared form"
-      putTextLn ":reduce term"
-      putTextLn "    Print the reduced form"
       putTextLn ":quit"
       putTextLn "    Exit the REPL"
 
