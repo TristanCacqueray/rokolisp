@@ -16,6 +16,7 @@ where
 
 import Data.Map (lookup)
 import qualified Data.Map as Map
+import qualified Data.Text as Text
 import Relude
 import qualified Text.Show
 
@@ -37,10 +38,12 @@ data Value
 
 data Literal
   = LitInt Integer
+  | LitText Text
   deriving stock (Eq)
 
 instance Show Value where
   show (VLit (LitInt x)) = show x
+  show (VLit (LitText x)) = toString x
   show (VLam name term) = "VLam " <> show (Lam name term)
   show (VFun _) = "<runtime-func>"
   show (VClosure _) = "<closure>"
@@ -89,4 +92,6 @@ eval env = \case
       x -> error ("app term is not a closure " <> show t1 <> " (" <> show x <> ")")
   where
     decodeLit :: Name -> Maybe Literal
-    decodeLit n = LitInt <$> readMaybe (toString n)
+    decodeLit n
+      | Text.head n == '"' && Text.last n == '"' = LitText <$> readMaybe (toString n)
+      | otherwise = LitInt <$> readMaybe (toString n)

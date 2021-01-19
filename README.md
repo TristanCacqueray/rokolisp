@@ -45,6 +45,7 @@ A RokoLisp term can be evaluated to a value:
 
 - Free variables may become a literal
   - `42` -> Integer
+  - `"hello"` -> Text
 
 The runtime implements the following built-ins:
 
