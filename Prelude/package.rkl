@@ -1,0 +1,29 @@
+; The Prelude
+(let
+  true  (λx y x)
+  false (λx y y)
+  cons  (λa b s (s a b))
+  car   (λp (p true))
+  cdr   (λp (p false))
+  nil   (λx true)
+  null? (λp (p (λx y false)))
+
+  Y (λg ((λx (g (x x))) (λx (g (x x)))))
+
+  lookup (Y (λlookup x xs
+    ((null? xs)
+       void
+       ((equals? x (car (car xs)))
+          (cdr (car xs))
+          (lookup x (cdr xs))))))
+
+in (list
+  ; Get lookup by applying (λx y x) (λx y y)
+  (cons "lookup" lookup)
+  (cons "true" true)
+  (cons "false" false)
+  (cons "cons" cons)
+  (cons "car" car)
+  (cons "cdr" cdr)
+  (cons "Y" Y)
+))

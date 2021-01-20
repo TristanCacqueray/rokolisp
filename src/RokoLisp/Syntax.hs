@@ -59,6 +59,7 @@ desugar = \case
     | Text.head x == 'λ' && Text.tail x /= "" -> desugar_lambda (Atom (Text.tail x) : xs)
   List (Atom "λ" : xs) -> desugar_lambda xs
   List (Atom "let" : xs) -> desugar_let xs
+  List (Atom "list" : xs) -> desugar_list xs
   List (f : x : xs) -> desugar_app (App <$> desugar f <*> desugar x) xs
   List [] -> Left "empty list"
   where
@@ -70,6 +71,12 @@ desugar = \case
     desugar_let [Atom name, value, body] = App <$> (Lam name <$> desugar body) <*> desugar value
     desugar_let (Atom name : value : xs) = App <$> (Lam name <$> desugar_let xs) <*> desugar value
     desugar_let xs = Left ("Invalid let binding: " <> show xs)
+    desugar_list [] = pure $ Lam "_" (Lam "x" (Lam "y" (Var "x")))
+    desugar_list (x : xs) = cons x =<< desugar_list xs
+      where
+        cons a b = do
+          a' <- desugar a
+          pure $ Lam "s" (App (App (Var "s") a') b)
     desugar_app :: Either Text Term -> [Syntax] -> Either Text Term
     desugar_app acc = \case
       [] -> acc

@@ -30,16 +30,18 @@ The term data type is defined as `data Term = Var Name | Lam Name Term | App Ter
 The core syntax is defined as `data Syntax = Atom Name | List [Syntax]` using s-expressions.
 The syntax is desugared to term:
 
-| Name              | Sugar                          | Term                                                                   |
-| ----------------- | ------------------------------ | ---------------------------------------------------------------------- |
-| Abstraction       | `(λx x)`                       | `(Lam "x" (Var "x"))`                                                  |
-| Abstraction curry | `(λx y x)`                     | `(Lam "x" (Lam "y" (Var "x")))`                                        |
-| Application       | `(f x)`                        | `(App (Var "f") (Var "x"))`                                            |
-| Application curry | `(f x y)`                      | `(App (App (Var "f") (Var "x")) (Var "y"))`                            |
-| Let binding       | `(let name value body)`        | `(App (Lam "name" body) value)`                                        |
-| Let bindings      | `(let n1 v1 n2 v2.. in body )` | `(App (Lam "n1" (App (Lam "n2" (Var "body")) (Var "v2"))) (Var "v1"))` |
-|                   |                                |                                                                        |
-| Imports           | `./path`                       | `path content`                                                         |
+| Name              | Sugar                          | Term                                                                                                                                                                                                        |
+| ----------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Abstraction       | `(λx x)`                       | `(Lam "x" (Var "x"))`                                                                                                                                                                                       |
+| Abstraction curry | `(λx y x)`                     | `(Lam "x" (Lam "y" (Var "x")))`                                                                                                                                                                             |
+| Application       | `(f x)`                        | `(App (Var "f") (Var "x"))`                                                                                                                                                                                 |
+| Application curry | `(f x y)`                      | `(App (App (Var "f") (Var "x")) (Var "y"))`                                                                                                                                                                 |
+| Let binding       | `(let name value body)`        | `(App (Lam "name" body) value)`                                                                                                                                                                             |
+| Let bindings      | `(let n1 v1 n2 v2.. in body )` | `(App (Lam "n1" (App (Lam "n2" (Var "body")) (Var "v2"))) (Var "v1"))`                                                                                                                                      |
+| List              | `(list 1 2 3)`                 | `(cons 1 (cons 2 (cons 3 nil)))` -> `(Lam "s" (App (App (Var "s") (Var "1")) (Lam "s" (App (App (Var "s") (Var "2")) (Lam "s" (App (App (Var "s") (Var "3")) (Lam "_" (Lam "x" (Lam "y" (Var "x"))))))))))` |
+|                   |                                |                                                                                                                                                                                                             |
+| Imports           | `./path`                       | `path content`                                                                                                                                                                                              |
+|                   |                                |                                                                                                                                                                                                             |
 
 Comments starting with `;` are ignored.
 
