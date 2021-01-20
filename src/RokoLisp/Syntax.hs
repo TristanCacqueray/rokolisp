@@ -54,12 +54,16 @@ format = \case
 -- Right (App (App (Var "add") (Var "x")) (Var "y"))
 desugar :: Syntax -> Either Text Term
 desugar = \case
+  Atom "true" -> pure $ Lam "x" (Lam "y" (Var "x"))
+  Atom "false" -> pure $ Lam "x" (Lam "y" (Var "y"))
+  Atom "nil" -> Lam "_" <$> desugar (Atom "true")
   Atom x -> pure $ Var x
   List [x] -> desugar x
   List (Atom x : xs)
     | Text.head x == 'λ' && Text.tail x /= "" -> desugar_lambda (Atom (Text.tail x) : xs)
   List (Atom "λ" : xs) -> desugar_lambda xs
   List (Atom "let" : xs) -> desugar_let xs
+  List (Atom "cons" : xs) -> desugar_pair xs
   List (Atom "list" : xs) -> desugar_list xs
   List (f : x : xs) -> desugar_app (App <$> desugar f <*> desugar x) xs
   List [] -> Left "empty list"
@@ -72,7 +76,13 @@ desugar = \case
     desugar_let [Atom name, value, body] = App <$> (Lam name <$> desugar body) <*> desugar value
     desugar_let (Atom name : value : xs) = App <$> (Lam name <$> desugar_let xs) <*> desugar value
     desugar_let xs = Left ("Invalid let binding: " <> show xs)
-    desugar_list [] = pure $ Lam "_" (Lam "x" (Lam "y" (Var "x")))
+    desugar_pair :: [Syntax] -> Either Text Term
+    desugar_pair [a, b] = do
+      a' <- desugar a
+      b' <- desugar b
+      pure $ Lam "s" (App (App (Var "s") a') b')
+    desugar_pair x = Left ("Invalid pair: " <> show x)
+    desugar_list [] = desugar (Atom "nil")
     desugar_list (x : xs) = cons x =<< desugar_list xs
       where
         cons a b = do

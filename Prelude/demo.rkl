@@ -2,6 +2,5 @@
 (let
   Prelude ./package.rkl
   lookup (Prelude (λx y x) (λx y y))
-  car (lookup "car" Prelude)
-  cdr (lookup "cdr" Prelude)
-in (car (cdr (list 1 2))))
+  null? (lookup "null?" Prelude)
+in (null? nil "ok" "ko"))
