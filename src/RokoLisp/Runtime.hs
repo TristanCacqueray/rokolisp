@@ -29,6 +29,19 @@ churchNumeralEncode = \case
     go 0 = Var "s"
     go n = App (Var "f") (go (n - 1))
 
+true :: Value
+true = VLam "x" (Lam "y" (Var "x"))
+
+false :: Value
+false = VLam "x" (Lam "y" (Var "y"))
+
+equals :: Value -> Value -> IO Value
+equals (VLit x) (VLit y) = pure $ if x == y then true else false
+equals _ _ = error "Invalid argument for equals"
+
+fn2 :: (Value -> Value -> IO Value) -> Value -> IO Value
+fn2 f x = pure $ VFun (f x)
+
 functions :: MonadIO m => m (Map Name ThunkRef)
 functions = sequence (mkRuntimeThunk <$> runtimeMap)
   where
@@ -36,7 +49,8 @@ functions = sequence (mkRuntimeThunk <$> runtimeMap)
     runtimeMap =
       fromList
         [ ("church_numeral_decode", churchNumeralDecode),
-          ("church_numeral_encode", churchNumeralEncode)
+          ("church_numeral_encode", churchNumeralEncode),
+          ("equals?", fn2 equals)
         ]
     mkRuntimeThunk :: MonadIO m => (Value -> IO Value) -> m ThunkRef
     mkRuntimeThunk v = newIORef (const $ pure $ VFun v)

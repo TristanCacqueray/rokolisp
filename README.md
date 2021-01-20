@@ -55,3 +55,4 @@ The runtime implements the following built-ins:
 
 - `(church_numeral_encode 2)` -> `(λf (λs (f (f s))))`
 - `(church_numeral_decode (λ f x (f (f x))))` -> `2`
+- `(equals? 1 1)` -> `(λx (λy x))` if true else `(λx (λy y))`

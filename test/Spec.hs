@@ -72,3 +72,5 @@ main = hspec $ do
   describe "Eval" $ do
     it "Y" ("((λ g ((λ x (g (x x))) (λ x (g (x x))))) (λ id (λ x x)) 42)" `evalEquals` "42")
     it "Fact" ("(./test/code/fact.rkl 3)" `evalEquals` "6")
+    it "equals?" ("((equals? 1 1) 1 2)" `evalEquals` "1")
+    it "not equals?" ("((equals? 1 2) 1 2)" `evalEquals` "2")
