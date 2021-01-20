@@ -22,9 +22,9 @@ import RokoLisp.Runtime
 import RokoLisp.Syntax
 
 -- | Full eval function that resolves imports
-doEval :: MonadIO m => Text -> m Value
-doEval input = case parse input of
+doEval :: MonadIO m => Maybe FilePath -> Text -> m Value
+doEval fp input = case parse input of
   Right term -> do
     func <- functions
-    resolve term >>= eval func
+    resolve (fromMaybe "" fp) term >>= eval func
   Left err -> error (show err)

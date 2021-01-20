@@ -4,6 +4,7 @@ module RokoLisp.Syntax (parse, format, resolve) where
 import qualified Data.Text as Text
 import Relude hiding ((<|>))
 import RokoLisp.Eval (Term (..))
+import System.FilePath (takeDirectory, (</>))
 import Text.Parsec
   ( char,
     spaces,
@@ -101,17 +102,18 @@ syntaxParser = comments *> ((Atom <$> atomParser) <|> (List <$> listParser)) <* 
       (spaces *> char '(') *> syntaxParser `Parsec.sepBy` spaces <* (spaces *> char ')' <* spaces)
 
 -- | Resolve imports
-resolve :: MonadIO m => Term -> m Term
-resolve = \case
-  Lam name body -> Lam name <$> resolve body
-  App f arg -> App <$> resolve f <*> resolve arg
+resolve :: MonadIO m => FilePath -> Term -> m Term
+resolve fp = \case
+  Lam name body -> Lam name <$> resolve fp body
+  App f arg -> App <$> resolve fp f <*> resolve fp arg
   Var x -> importVar x
   where
     importVar :: MonadIO m => Text -> m Term
     importVar x
       | Text.head x `elem` ("./" :: String) = do
-        terms' <- parse <$> readFileText (toString x)
+        let newFp = takeDirectory fp </> toString x
+        terms' <- parse <$> readFileText newFp
         case terms' of
-          Right term -> resolve term
+          Right term -> resolve newFp term
           Left err -> error ("Import " <> x <> " failed: " <> err)
       | otherwise = pure (Var x)

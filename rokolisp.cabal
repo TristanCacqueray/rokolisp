@@ -65,6 +65,7 @@ library
   import:              common-options
   build-depends:       containers
                      , base
+                     , filepath
                      , parsec
                      , relude
                      , text

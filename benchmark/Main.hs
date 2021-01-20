@@ -33,7 +33,7 @@ main =
   where
     evalFact :: Integer -> Text -> IO ()
     evalFact expected t = do
-      value <- doEval t
+      value <- doEval Nothing t
       case value of
         VLit (LitInt x) | x == expected -> pure ()
         err -> error ("Eval failed: " <> show err)

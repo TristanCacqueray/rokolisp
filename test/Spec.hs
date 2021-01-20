@@ -27,8 +27,8 @@ parse' s = case parse s of
 
 evalEquals :: Text -> Text -> IO ()
 evalEquals x y = do
-  v1 <- doEval x
-  v2 <- doEval y
+  v1 <- doEval Nothing x
+  v2 <- doEval Nothing y
   v1 `shouldBe` v2
 
 docspec :: IO ()

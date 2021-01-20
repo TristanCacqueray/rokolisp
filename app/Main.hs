@@ -11,8 +11,8 @@ import Relude
 import RokoLisp
 import System.Console.Repline
 
-replEval :: Text -> IO ()
-replEval input = doEval input >>= print
+replEval :: Maybe FilePath -> Text -> IO ()
+replEval fp input = doEval fp input >>= print
 
 replParse :: Text -> IO ()
 replParse input = print (parse input)
@@ -22,7 +22,7 @@ runREPL :: IO ()
 runREPL = evalReplOpts (ReplOpts {..})
   where
     banner = const $ pure ">>> "
-    command = liftIO . replEval . toText
+    command = liftIO . replEval Nothing . toText
     options =
       [ ("parse", liftIO . replParse . toText),
         ("quit", const (seeYou >> abort)),
@@ -59,7 +59,7 @@ main = do
   if
       | version args -> putText versionText
       | repl args -> runREPL
-      | otherwise -> maybe getContents readFileText (file args) >>= replEval
+      | otherwise -> maybe getContents readFileText (file args) >>= replEval (file args)
   where
     versionText = packageVersion <> " " <> commit
     packageVersion = toText . showVersion $ Paths_rokolisp.version
