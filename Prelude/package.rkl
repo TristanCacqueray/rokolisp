@@ -20,6 +20,10 @@
 in (list
   ; Get lookup by applying (λx y x) (λx y y)
   (cons "lookup" lookup)
+  (cons "true" true)
+  (cons "false" false)
+  (cons "cons" cons)
+  (cons "nil" nil)
   (cons "car" car)
   (cons "cdr" cdr)
   (cons "null?" null?)

@@ -8,6 +8,7 @@ module RokoLisp.Eval
     -- * Runtimes
     Name,
     ThunkRef,
+    toVLam,
 
     -- * Evaluation function
     eval,
@@ -31,10 +32,9 @@ data Term
 
 -- | The Value data type
 data Value
-  = VLam Name Term
-  | VLit Literal
+  = VLam Name Term (Thunk -> IO Value)
   | VFun (Value -> IO Value)
-  | VClosure (Thunk -> IO Value)
+  | VLit Literal
 
 data Literal
   = LitInt Integer
@@ -44,12 +44,11 @@ data Literal
 instance Show Value where
   show (VLit (LitInt x)) = show x
   show (VLit (LitText x)) = toString x
-  show (VLam name term) = "VLam " <> show (Lam name term)
+  show (VLam name term _) = show (Lam name term)
   show (VFun _) = "<runtime-func>"
-  show (VClosure _) = "<closure>"
 
 instance Eq Value where
-  VLam n t == VLam n' t' = n == n' && t == t'
+  VLam n t _ == VLam n' t' _ = n == n' && t == t'
   VLit x == VLit y = x == y
   _ == _ = False
 
@@ -59,6 +58,9 @@ type Thunk = () -> IO Value
 type ThunkRef = IORef Thunk
 
 type Env = Map Name ThunkRef
+
+toVLam :: Env -> Name -> Term -> Value
+toVLam env name term = VLam name term (mkThunk env name term)
 
 forceThunk :: MonadIO m => ThunkRef -> m Value
 forceThunk ref = do
@@ -80,12 +82,11 @@ eval env = \case
     Nothing -> case decodeLit x of
       Just v -> pure $ VLit v
       Nothing -> error ("unknown var " <> show x)
-  Lam name term -> pure $ VClosure (mkThunk env name term)
+  Lam name term -> pure $ toVLam env name term
   App t1 t2 -> do
     fun <- eval env t1
     case fun of
-      VClosure c -> liftIO $ c (const $ eval env t2)
-      VLam n t -> mkThunk env n t (const $ eval env t2)
+      VLam _ _ c -> liftIO $ c (const $ eval env t2)
       VFun f -> do
         arg <- eval env t2
         liftIO $ f arg
