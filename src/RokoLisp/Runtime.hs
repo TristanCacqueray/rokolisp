@@ -1,5 +1,5 @@
 -- | The language runtime
-module RokoLisp.Runtime (functions) where
+module RokoLisp.Runtime (functions, consDecode, listDecode) where
 
 import Relude
 import RokoLisp.Eval
@@ -11,6 +11,43 @@ add x y = case (x, y) of
 
 inc :: Value -> IO Value
 inc = add (VLit (LitInt 1))
+
+-- | Decode a church encoded cons value
+consDecode :: Value -> IO (Value, Value)
+consDecode x = case x of
+  VLam _ _ c -> do
+    car <- c (const $ pure true)
+    cdr <- c (const $ pure false)
+    pure (car, cdr)
+  _ -> error ("Invalid cons: first term is not a lambda: " <> show x)
+
+-- | Decode a church encoded list
+listDecode :: Value -> IO [Value]
+listDecode x = do
+  (car, cdr) <- consDecode x
+  case cdr of
+    VLam _ _ f -> do
+      isNil <- isTrue =<< f (const $ pure isNull)
+      case isNil of
+        Just True -> pure [car]
+        _ -> fmap (car :) (listDecode cdr)
+    _ -> error ("Invalid list: second term is not a lambda: " <> show cdr)
+
+-- | Test if a church encoded boolean is True
+isTrue :: Value -> IO (Maybe Bool)
+isTrue (VLam _name _term f) = do
+  x <- f (const $ pure $ VLit (LitInt 0))
+  case x of
+    VLam _ _ g -> do
+      y <- g (const $ pure $ VLit (LitInt 1))
+      pure $ case y of
+        VLit (LitInt z) -> Just $ z == 0
+        _ -> Nothing
+    _ -> pure Nothing
+isTrue _ = pure Nothing
+
+isNull :: Value
+isNull = toVLam mempty "x" (Lam "y" (Var "x"))
 
 churchNumeralDecode :: Value -> IO Value
 churchNumeralDecode x = case x of
