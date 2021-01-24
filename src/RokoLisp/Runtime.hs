@@ -79,6 +79,14 @@ equals _ _ = error "Invalid argument for equals"
 fn2 :: (Value -> Value -> IO Value) -> Value -> IO Value
 fn2 f x = pure $ VFun (f x)
 
+print' :: Value -> IO Value
+print' x = pure $ VIO (putText (show x))
+
+seqIO :: Value -> Value -> IO Value
+seqIO x y = case (x, y) of
+  (VIO x', VIO y') -> pure $ VIO (x' >> y')
+  _ -> error "Can't sequence non IO value"
+
 functions :: MonadIO m => m (Map Name ThunkRef)
 functions = sequence (mkRuntimeThunk <$> runtimeMap)
   where
@@ -87,7 +95,9 @@ functions = sequence (mkRuntimeThunk <$> runtimeMap)
       fromList
         [ ("church_numeral_decode", churchNumeralDecode),
           ("church_numeral_encode", churchNumeralEncode),
-          ("equals?", fn2 equals)
+          ("equals?", fn2 equals),
+          ("print", print'),
+          (">>", fn2 seqIO)
         ]
     mkRuntimeThunk :: MonadIO m => (Value -> IO Value) -> m ThunkRef
     mkRuntimeThunk v = newIORef (const $ pure $ VFun v)

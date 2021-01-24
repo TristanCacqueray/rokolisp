@@ -38,6 +38,7 @@ The syntax is desugared to term:
 | Application curry | `(f x y)`                      | `App (App (Var "f") (Var "x")) (Var "y")`                            |
 | Let binding       | `(let name value body)`        | `App (Lam "name" body) value`                                        |
 | Let bindings      | `(let n1 v1 n2 v2.. in body )` | `App (Lam "n1" (App (Lam "n2" (Var "body")) (Var "v2"))) (Var "v1")` |
+| Do notation       | `(do x y z)`                   | `(>> x (>> y z))`                                                    |
 |                   |                                |                                                                      |
 | Boolean true      | `true`                         | `Lam "x" (Lam "y" (Var "x"))`                                        |
 | Boolean false     | `false`                        | `Lam "x" (Lam "y" (Var "y"))`                                        |
@@ -63,3 +64,5 @@ The runtime implements the following built-ins:
 - `(church_numeral_encode 2)` -> `(λf (λs (f (f s))))`
 - `(church_numeral_decode (λ f x (f (f x))))` -> `2`
 - `(equals? 1 1)` -> `(λx (λy x))` if true else `(λx (λy y))`
+- `(print 42)` -> io to print 42
+- `(>> x y)` -> evaluate the io x then the io y

@@ -12,7 +12,10 @@ import RokoLisp
 import System.Console.Repline
 
 replEval :: Maybe FilePath -> Text -> IO ()
-replEval fp input = doEval fp input >>= print
+replEval fp input =
+  doEval fp input >>= \case
+    VIO io -> io
+    x -> print x
 
 replParse :: Text -> IO ()
 replParse input = print (parse input)

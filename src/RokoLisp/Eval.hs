@@ -35,6 +35,7 @@ data Value
   = VLam Name Term (Thunk -> IO Value)
   | VFun (Value -> IO Value)
   | VLit Literal
+  | VIO (IO ())
 
 data Literal
   = LitInt Integer
@@ -46,6 +47,7 @@ instance Show Value where
   show (VLit (LitText x)) = toString x
   show (VLam name term _) = show (Lam name term)
   show (VFun _) = "<runtime-func>"
+  show (VIO _) = "<io-value>"
 
 instance Eq Value where
   VLam n t _ == VLam n' t' _ = n == n' && t == t'

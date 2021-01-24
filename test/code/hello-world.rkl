@@ -1,0 +1,2 @@
+(let greet (λname (do (print "Hello") (print name) (print "\n")))
+  in (greet "World"))

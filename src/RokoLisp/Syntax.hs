@@ -65,6 +65,7 @@ desugar = \case
   List (Atom "let" : xs) -> desugar_let xs
   List (Atom "cons" : xs) -> desugar_pair xs
   List (Atom "list" : xs) -> desugar_list xs
+  List (Atom "do" : xs) -> desugar_do xs
   List (f : x : xs) -> desugar_app (App <$> desugar f <*> desugar x) xs
   List [] -> Left "empty list"
   where
@@ -88,6 +89,13 @@ desugar = \case
         cons a b = do
           a' <- desugar a
           pure $ Lam "s" (App (App (Var "s") a') b)
+    desugar_do :: [Syntax] -> Either Text Term
+    desugar_do [x] = desugar x
+    desugar_do (x : xs) = do
+      x' <- desugar x
+      xs' <- desugar_do xs
+      pure $ App (App (Var ">>") x') xs'
+    desugar_do [] = Left "Empty do block"
     desugar_app :: Either Text Term -> [Syntax] -> Either Text Term
     desugar_app acc = \case
       [] -> acc
