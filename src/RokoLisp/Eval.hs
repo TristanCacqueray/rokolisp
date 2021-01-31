@@ -54,7 +54,7 @@ instance Eq Value where
   VLit x == VLit y = x == y
   _ == _ = False
 
--- | call-by-value thunk (based on Write You A Haskell code by Stephen Dielh)
+-- | call-by-need thunk (based on Write You A Haskell code by Stephen Dielh)
 type Thunk = () -> IO Value
 
 type ThunkRef = IORef Thunk
